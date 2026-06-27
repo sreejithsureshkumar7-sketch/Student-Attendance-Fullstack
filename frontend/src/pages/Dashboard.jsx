@@ -1,84 +1,15 @@
-import { useEffect, useState } from "react";
-import API from "../services/api.js";
-
-export default function Dashboard({ setUser }) {
-  const [students, setStudents] = useState([]);
-  const [form, setForm] = useState({
-    name: "",
-    rollNo: "",
-    department: "Computer Science",
-    year: "II",
-    phone: "",
-    parentPhone: "",
-    email: "",
-    address: ""
-  });
-
-  const loadStudents = async () => {
-    const res = await API.get("/students");
-    setStudents(res.data);
-  };
-
-  useEffect(() => {
-    loadStudents();
-  }, []);
-
-  const addStudent = async (e) => {
-    e.preventDefault();
-    await API.post("/students", form);
-    setForm({ ...form, name: "", rollNo: "", phone: "", parentPhone: "", email: "", address: "" });
-    loadStudents();
-  };
-
-  const saveAttendance = async () => {
-    const today = new Date().toISOString().slice(0, 10);
-    const records = students.map((s) => ({
-      student: s._id,
-      subject: "JavaScript",
-      date: today,
-      status: document.querySelector(`input[name='${s._id}']:checked`)?.value || "Absent"
-    }));
-
-    await API.post("/attendance/mark", { records });
-    alert("Attendance Saved");
-  };
-
-  const logout = () => {
-    localStorage.clear();
-    setUser(null);
-  };
-
-  return (
-    <div className="container">
-      <header>
-        <h1>Student Attendance System</h1>
-        <button onClick={logout}>Logout</button>
-      </header>
-
-      <section className="grid">
-        <form className="card" onSubmit={addStudent}>
-          <h2>Add Student</h2>
-          <input placeholder="Name" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
-          <input placeholder="Roll No" value={form.rollNo} onChange={(e) => setForm({ ...form, rollNo: e.target.value })} />
-          <input placeholder="Phone" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
-          <input placeholder="Parent Phone" value={form.parentPhone} onChange={(e) => setForm({ ...form, parentPhone: e.target.value })} />
-          <input placeholder="Email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
-          <textarea placeholder="Address" value={form.address} onChange={(e) => setForm({ ...form, address: e.target.value })} />
-          <button>Add Student</button>
-        </form>
-
-        <div className="card">
-          <h2>Mark Attendance</h2>
-          {students.map((s) => (
-            <div className="student" key={s._id}>
-              <b>{s.rollNo} - {s.name}</b>
-              <label><input type="radio" name={s._id} value="Present" defaultChecked /> Present</label>
-              <label><input type="radio" name={s._id} value="Absent" /> Absent</label>
-            </div>
-          ))}
-          <button onClick={saveAttendance}>Save Attendance</button>
-        </div>
-      </section>
-    </div>
-  );
-}
+import {useEffect,useState} from "react";import API from "../services/api.js";
+export default function Dashboard({user,setUser}){const [tab,setTab]=useState("students"),[students,setStudents]=useState([]),[stats,setStats]=useState({}),[report,setReport]=useState([]);const [filter,setFilter]=useState({department:"",year:"",search:""});const [student,setStudent]=useState({name:"",rollNo:"",department:"Computer Science",year:"II",phone:"",parentPhone:"",email:"",address:""});const [userForm,setUserForm]=useState({name:"",email:"",password:"123456",role:"staff",department:"Computer Science",subject:"JavaScript"});
+const load=async()=>{const p=new URLSearchParams(filter).toString();setStudents((await API.get(`/students?${p}`)).data);setStats((await API.get("/attendance/stats")).data)};useEffect(()=>{load()},[]);
+const addStudent=async e=>{e.preventDefault();await API.post("/students",student);setStudent({...student,name:"",rollNo:"",phone:"",parentPhone:"",email:"",address:""});load()};
+const del=async id=>{if(confirm("Delete student?")){await API.delete(`/students/${id}`);load()}};
+const mark=async()=>{const date=document.getElementById("date").value||new Date().toISOString().slice(0,10);const subject=document.getElementById("subject").value||"JavaScript";const records=students.map(s=>({student:s._id,subject,date,status:document.querySelector(`input[name='${s._id}']:checked`)?.value||"Absent"}));await API.post("/attendance/mark",{records});alert("Attendance saved");load()};
+const loadReport=async()=>{const subject=document.getElementById("rsubject").value,date=document.getElementById("rdate").value;const p=new URLSearchParams({subject,date,department:filter.department,year:filter.year}).toString();setReport((await API.get(`/attendance/report?${p}`)).data)};
+const csv=()=>{const rows=[["Date","Roll","Name","Dept","Year","Subject","Status"]];report.forEach(r=>rows.push([r.date,r.student?.rollNo,r.student?.name,r.student?.department,r.student?.year,r.subject,r.status]));const blob=new Blob([rows.map(r=>r.map(x=>`"${x||""}"`).join(",")).join("\n")],{type:"text/csv"});const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="attendance-report.csv";a.click()};
+const createUser=async e=>{e.preventDefault();await API.post("/users",userForm);alert("User created");setUserForm({...userForm,name:"",email:""})};const logout=()=>{localStorage.clear();setUser(null)};
+return <div className="app"><aside><h2>Attendance Pro</h2><p>{user.name} • {user.role}</p><button onClick={()=>setTab("students")}>Students</button><button onClick={()=>setTab("attendance")}>Attendance</button><button onClick={()=>setTab("reports")}>Reports</button>{user.role==="admin"&&<button onClick={()=>setTab("users")}>Users</button>}<button className="logout" onClick={logout}>Logout</button></aside><main><div className="cards"><Stat n={stats.students||0} t="Students"/><Stat n={stats.present||0} t="Present"/><Stat n={stats.absent||0} t="Absent"/><Stat n={(stats.percentage||0)+"%"} t="Attendance"/></div>
+{tab==="students"&&<section className="panel"><h1>Student Management</h1><div className="filters"><input placeholder="Search" value={filter.search} onChange={e=>setFilter({...filter,search:e.target.value})}/><input placeholder="Department" value={filter.department} onChange={e=>setFilter({...filter,department:e.target.value})}/><input placeholder="Year" value={filter.year} onChange={e=>setFilter({...filter,year:e.target.value})}/><button onClick={load}>Filter</button></div><form className="formGrid" onSubmit={addStudent}>{["name","rollNo","department","year","phone","parentPhone","email","address"].map(k=><input key={k} placeholder={k} value={student[k]} onChange={e=>setStudent({...student,[k]:e.target.value})}/>) }<button>Add Student</button></form><table><thead><tr><th>Roll</th><th>Name</th><th>Dept</th><th>Year</th><th>Phone</th><th>Action</th></tr></thead><tbody>{students.map(s=><tr key={s._id}><td>{s.rollNo}</td><td>{s.name}</td><td>{s.department}</td><td>{s.year}</td><td>{s.phone}</td><td><button onClick={()=>del(s._id)}>Delete</button></td></tr>)}</tbody></table></section>}
+{tab==="attendance"&&<section className="panel"><h1>Mark Attendance</h1><div className="filters"><input id="subject" defaultValue="JavaScript"/><input id="date" type="date" defaultValue={new Date().toISOString().slice(0,10)}/></div>{students.map(s=><div className="attRow" key={s._id}><b>{s.rollNo} - {s.name}</b><label><input type="radio" name={s._id} value="Present" defaultChecked/> Present</label><label><input type="radio" name={s._id} value="Absent"/> Absent</label></div>)}<button onClick={mark}>Save Attendance</button></section>}
+{tab==="reports"&&<section className="panel"><h1>Reports</h1><div className="filters"><input id="rsubject" placeholder="Subject"/><input id="rdate" type="date"/><button onClick={loadReport}>Load Report</button><button onClick={csv}>Download CSV</button></div><table><thead><tr><th>Date</th><th>Roll</th><th>Name</th><th>Subject</th><th>Status</th></tr></thead><tbody>{report.map(r=><tr key={r._id}><td>{r.date}</td><td>{r.student?.rollNo}</td><td>{r.student?.name}</td><td>{r.subject}</td><td>{r.status}</td></tr>)}</tbody></table></section>}
+{tab==="users"&&<section className="panel"><h1>Create Staff / HOD / CR</h1><form className="formGrid" onSubmit={createUser}>{["name","email","password","department","subject"].map(k=><input key={k} placeholder={k} value={userForm[k]} onChange={e=>setUserForm({...userForm,[k]:e.target.value})}/>)}<select value={userForm.role} onChange={e=>setUserForm({...userForm,role:e.target.value})}><option value="staff">Staff</option><option value="hod">HOD</option><option value="cr">CR</option><option value="admin">Admin</option></select><button>Create User</button></form></section>}</main></div>}
+function Stat({n,t}){return <div className="stat"><b>{n}</b><span>{t}</span></div>}
