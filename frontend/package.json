@@ -1,6 +1,6 @@
 {
-  "name": "attendance-frontend",
-  "version": "1.0.0",
+  "name": "attendance-final-frontend",
+  "version": "2.0.0",
   "type": "module",
   "scripts": {
     "dev": "vite --host 0.0.0.0",
