@@ -1,32 +1,5 @@
-import express from "express";
-import cors from "cors";
-import dotenv from "dotenv";
-import mongoose from "mongoose";
-
-import authRoutes from "./routes/authRoutes.js";
-import studentRoutes from "./routes/studentRoutes.js";
-import attendanceRoutes from "./routes/attendanceRoutes.js";
-
-dotenv.config();
-
-const app = express();
-app.use(cors());
-app.use(express.json());
-
-app.get("/", (req, res) => {
-  res.json({ message: "Attendance API running" });
-});
-
-app.use("/api/auth", authRoutes);
-app.use("/api/students", studentRoutes);
-app.use("/api/attendance", attendanceRoutes);
-
-mongoose
-  .connect(process.env.MONGO_URI)
-  .then(() => {
-    console.log("MongoDB connected");
-    app.listen(process.env.PORT || 5000, () =>
-      console.log(`Server running on port ${process.env.PORT || 5000}`)
-    );
-  })
-  .catch((err) => console.log("MongoDB Error:", err.message));
+import express from "express";import cors from "cors";import dotenv from "dotenv";import connectDB from "./config/db.js";import {seedAdmin} from "./utils/seedAdmin.js";import authRoutes from "./routes/authRoutes.js";import userRoutes from "./routes/userRoutes.js";import studentRoutes from "./routes/studentRoutes.js";import attendanceRoutes from "./routes/attendanceRoutes.js";
+dotenv.config();const app=express();app.use(express.json({limit:"10mb"}));app.use(cors({origin:process.env.CLIENT_URL||"*",credentials:true}));
+app.get("/",(req,res)=>res.json({message:"Attendance API running",version:"2.0 Final Upgrade"}));
+app.use("/api/auth",authRoutes);app.use("/api/users",userRoutes);app.use("/api/students",studentRoutes);app.use("/api/attendance",attendanceRoutes);
+const PORT=process.env.PORT||5000;connectDB().then(async()=>{await seedAdmin();app.listen(PORT,()=>console.log(`Server running on port ${PORT}`))});
