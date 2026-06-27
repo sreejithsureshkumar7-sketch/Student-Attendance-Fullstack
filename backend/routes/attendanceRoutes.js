@@ -1,10 +1,1 @@
-import express from "express";
-import { markAttendance, getReport } from "../controllers/attendanceController.js";
-import { protect } from "../middleware/auth.js";
-
-const router = express.Router();
-
-router.post("/mark", protect, markAttendance);
-router.get("/report", protect, getReport);
-
-export default router;
+import express from "express";import {protect,allowRoles} from "../middleware/auth.js";import {markAttendance,getReport,getStats} from "../controllers/attendanceController.js";const r=express.Router();r.get("/stats",protect,getStats);r.post("/mark",protect,allowRoles("admin","staff"),markAttendance);r.get("/report",protect,getReport);export default r;

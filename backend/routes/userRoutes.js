@@ -1,0 +1,1 @@
+import express from "express";import {protect,allowRoles} from "../middleware/auth.js";import {getUsers,createUser,deleteUser} from "../controllers/userController.js";const r=express.Router();r.get("/",protect,allowRoles("admin"),getUsers);r.post("/",protect,allowRoles("admin"),createUser);r.delete("/:id",protect,allowRoles("admin"),deleteUser);export default r;
